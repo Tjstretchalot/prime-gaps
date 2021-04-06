@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"os"
 	"runtime"
+	"strconv"
 	"time"
 )
 
@@ -318,6 +319,8 @@ func (i *PrimeGapsInfo) ExpandGapCounter() {
 	i.GapCounter = newGapCounter
 }
 
+var precomputeWarning bool = false
+
 func deterministicIsPrime(n *big.Int, space []big.Int, precomputedPrimes []uint32, zero *big.Int) bool {
 	(&space[0]).Sqrt(n) // space[0] = stopping point
 
@@ -332,7 +335,10 @@ func deterministicIsPrime(n *big.Int, space []big.Int, precomputedPrimes []uint3
 	}
 
 	// fallback, no more precomputed primes :(
-	log.Printf("Ran out of precomputed primes checking if %s is prime deterministically", n.Text(10))
+	if !precomputeWarning {
+		log.Printf("Ran out of precomputed primes checking if %s is prime deterministically", n.Text(10))
+		precomputeWarning = true
+	}
 
 	two := big.NewInt(2)
 	for (&space[1]).Cmp(&space[0]) <= 0 {
@@ -353,6 +359,20 @@ func incrementUntilDeterministicallyPrime(n *big.Int, precomputedPrimes []uint32
 	for !deterministicIsPrime(n, space, precomputedPrimes, zero) {
 		n.Add(n, one)
 	}
+}
+
+func getIntEnviron(envName string, def int) int {
+	envVal, found := os.LookupEnv(envName)
+	if !found {
+		log.Printf("Missing environment variable %s, assuming %d", envName, def)
+		return def
+	}
+
+	parsed, err := strconv.Atoi(envVal)
+	if err != nil {
+		log.Fatalf("Error interpreting environment variable %s: %s", envName, err)
+	}
+	return parsed
 }
 
 func main() {
@@ -376,10 +396,15 @@ func main() {
 		log.Fatalf("error opening info.json: %s", err)
 	}
 
-	info.PrecomputePrimes(1_000_000)
+	targetNumberOfPrimesToPrecompute := getIntEnviron("PRECOMPUTE_PRIMES", 1_000_000)
+	targetNumberOfPrimesForPlot := getIntEnviron("TARGET_PRIMES", int(info.PrimesSoFar)+10_000_000)
+	parallelism := getIntEnviron("PARALLELISM", runtime.NumCPU())
+	blockSize := getIntEnviron("BLOCK_SIZE", 1_000_000)
+
+	info.PrecomputePrimes(targetNumberOfPrimesToPrecompute)
 
 	log.Printf("Continuing from %d primes...", info.PrimesSoFar)
-	info.IterateToParallel(50_000_000, runtime.NumCPU()/2, 100_000)
+	info.IterateToParallel(uint64(targetNumberOfPrimesForPlot), parallelism, uint64(blockSize))
 	log.Printf("Now at %d primes", info.PrimesSoFar)
 
 	marshalled, err = json.Marshal(info)
