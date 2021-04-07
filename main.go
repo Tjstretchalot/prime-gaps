@@ -38,9 +38,14 @@ type PrimeGapsInfo struct {
 	// value of 0, this is perfectly accurate for CurrentNumber below 2^64.
 	MillerRabinBases int
 
-	// Only set if MillerRabinBases is negative. The precomputed prime numbers to
-	// speed up the deterministic prime check, starting with index 0 = 2, index 1 = 3.
-	// First 50 million primes is a good target for large sweeps.
+	// Only used when checking primes deterministically, such as when parallelizing
+	// and determinism is important, or when MillerRabinBases is 0. The precomputed
+	// prime numbers to speed up the deterministic prime check, starting with index
+	// 0 = 2, index 1 = 3.
+	//
+	// First 10 million primes is a good target for large sweeps. You can google
+	// "10 millionth prime", square it, and that's approximately how large a number
+	// whose primality check is improved using the precomputed primes.
 	PrecomputedPrimes []uint32
 }
 
