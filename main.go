@@ -50,7 +50,7 @@ type PrimeGapsInfo struct {
 }
 
 // PrecomputePrimes ensures that we have precomputed at least the given number of
-// primes. Only works for primes below 2^32. 50 million is a good number
+// primes. Only works for primes below 2^32. 10 million is a good number
 func (i *PrimeGapsInfo) PrecomputePrimes(numberOfPrimes int) {
 	var tmp *big.Int
 	if i.PrecomputedPrimes == nil {
@@ -106,7 +106,7 @@ func (i *PrimeGapsInfo) IterateTo(targetNumberOfPrimes uint64) {
 			i.CurrentNumber.Add(i.CurrentNumber, two)
 		}
 	} else {
-		// precompute first 50 million primes for faster check
+		// precompute small primes for faster checks on larger primes
 		space := make([]big.Int, 3)
 		zero := big.NewInt(0)
 		for i.PrimesSoFar < targetNumberOfPrimes {
@@ -160,7 +160,6 @@ func (i *PrimeGapsInfo) IterateToNumber(targetNumber *big.Int) {
 			i.CurrentNumber.Add(i.CurrentNumber, two)
 		}
 	} else {
-		// precompute first 50 million primes for faster check
 		space := make([]big.Int, 3)
 		zero := big.NewInt(0)
 		for i.CurrentNumber.Cmp(targetNumber) < 0 {
