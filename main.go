@@ -56,12 +56,24 @@ func (i *PrimeGapsInfo) PrecomputePrimes(numberOfPrimes int) {
 	var tmp *big.Int
 	if i.PrecomputedPrimes == nil {
 		i.PrecomputedPrimes = make([]uint32, 0, numberOfPrimes)
-		tmp = big.NewInt(2)
+		i.PrecomputedPrimes = append(i.PrecomputedPrimes, 2)
+		tmp = big.NewInt(3)
 	} else {
+		// Need the array not empty
+		if len(i.PrecomputedPrimes) < 1 {
+			i.PrecomputedPrimes = append(i.PrecomputedPrimes, 2)
+		}
+
+		// Need the last value to be odd
+		if len(i.PrecomputedPrimes) < 2 {
+			i.PrecomputedPrimes = append(i.PrecomputedPrimes, 3)
+		}
+
 		tmp = big.NewInt(int64(i.PrecomputedPrimes[len(i.PrecomputedPrimes)-1] + 2))
+
 	}
 
-	one := big.NewInt(1)
+	two := big.NewInt(2)
 	lastPrintedProgress := time.Now()
 
 	log.Println("Precomputing primes...")
@@ -69,7 +81,7 @@ func (i *PrimeGapsInfo) PrecomputePrimes(numberOfPrimes int) {
 		if tmp.ProbablyPrime(0) { // deterministic for numbers this small
 			i.PrecomputedPrimes = append(i.PrecomputedPrimes, uint32(tmp.Int64()))
 		}
-		tmp.Add(tmp, one)
+		tmp.Add(tmp, two)
 
 		if time.Since(lastPrintedProgress) > 5*time.Second {
 			log.Printf("Precomputing primes... %d", len(i.PrecomputedPrimes))
@@ -208,6 +220,10 @@ func (i *PrimeGapsInfo) IterateToParallel(targetNumberOfPrimes uint64, paralleli
 
 		expectedNumberOfPrimes := approxPrimesBelow(endNumber) + expectedNumberOfPrimesAdjustment
 		expectedNumberOfPrimesIfOneMoreBlock := approxPrimesBelow(endNumberIfOneMoreBlock) + expectedNumberOfPrimesAdjustment
+
+		if expectedNumberOfPrimesIfOneMoreBlock >= targetNumberOfPrimes {
+			break
+		}
 
 		for expectedNumberOfPrimesIfOneMoreBlock < targetNumberOfPrimes-50_000 {
 			blocks++
